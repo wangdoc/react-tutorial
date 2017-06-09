@@ -155,20 +155,77 @@ module: {
 
 `resolve`字段是一个对象，规定了模块解析的设置。
 
-`resolve.modulesDirectories`设置模块加载时，依次搜索的目录。
+（1）`resolve.modules`
+
+`resolve.modules`设置模块加载时，依次搜索的目录。
 
 ```javascript
 resolve: {
-  modulesDirectories: ['node_modules', 'bower_components', 'web_modules']
+  modules: ['node_modules', 'src']
 }
 ```
 
-`resolve.extensions`设置脚本文件的后缀名。
+上面的设置以后，模块的引用路径就可以简化。
+
+下面是`src/dir1/foo.js`的源码。
+
+```javascript
+// src/dir1/foo.js
+import Bar from '../dir2/bar';
+```
+
+上面代码引用`src/dir2/bar.js`。设置了`resolve.modules`以后，就可以改成下面的写法。
+
+```javascript
+import Bar from 'dir2/bar';
+```
+
+（2）`resolve.extensions`
+
+`resolve.extensions`设置脚本文件的后缀名，即不指定脚本的后缀名时，Webpack 会自动添加的后缀名。
 
 ```javascript
 resolve: {
   extensions: ['.js', '.jsx']
 },
+```
+
+（3）`resolve.mainFields`
+
+`package.json`文件里面有`main`字段，指明模块的入口文件。有时，不同的平台要求不同的入口文件，比如浏览器的入口文件很可能不同于 Node 的入口文件。
+
+目前，通行的做法是在`package.json`里面设置三个不同的字段，指明不同平台的入口文件。
+
+- `browser`：浏览器的入口文件
+- `module`：ES6 模块格式或 CommonJS 格式的入口文件，通常是`main`文件的另一种写法
+- `main`：通用的入口文件，用来覆盖默认的入口文件`index.js`
+
+下面是一个例子（`d3`的`package.json`）。
+
+```javascript
+{
+  ...
+  main: 'build/d3.Node.js',
+  browser: 'build/d3.js',
+  module: 'index',
+  ...
+}
+```
+
+`resolve.mainFields`就是设置 Webpack 应该采用的入口文件。
+
+如果 Webpack 配置文件的`target`字段设成`webworker`、`web`、或者根本没有设置，那么`resolve.mainFields`默认采用下面的值。
+
+```javascript
+mainFields: ["browser", "module", "main"]
+```
+
+上面的代码表示，Webpack 优先采用`package.json`的`browser`字段作为入口文件。如果该字段不存在，则采用`module`字段。如果`module`字段也不存在，则采用`main`字段。
+
+`target`字段的其他值（包括设成`node`），`resolve.mainFields`字段都默认采用下面的值。
+
+```javascript
+mainFields: ["module", "main"]
 ```
 
 ### plugins 字段

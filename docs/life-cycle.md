@@ -10,11 +10,29 @@
 - render
 - componentDidMount
 
+上面的`getDefaultProps`和`getInitialState`方法，都是只执行一次。
+
+```javascript
+// 返回值可以通过 this.props 读取
+getDefaultProps: function(){
+  return { /* something here */};
+}
+
+// 返回值可以通过 this.state 读取
+getInitialState: function(){
+  return { /* something here */};
+}
+```
+
+`componentDidMount`方法已经可以读取组件生成的 DOM。如果要与 DOM 互动，应该就在这个方法里面，而不是在`render`方法里面。
+
 卸载组件时，按如下顺序执行。
 
+- 卸载组件
 - componentWillUnmount
 
 重新挂载组件时，按如下顺序执行。
+
 - getInitialState
 - componentWillMount
 - render
@@ -22,14 +40,16 @@
 
 再次渲染组件时，组件接受到父组件传来的新参数，按如下顺序执行。
 
+- 更新 Props
 - componentWillReceiveProps
 - shouldComponentUpdate
 - componentWillUpdate
 - render
 - componentDidUpdate
 
-如果组件自身的 state 更新了，按如下顺序执行。
+如果组件自身的`state`更新了，按如下顺序执行。
 
+1. 更新 state
 1. shouldComponentUpdate
 1. componentWillUpdate
 1. render
@@ -37,7 +57,15 @@
 
 ## componentDidUpdate
 
-`componentDidUpdate`方法在每次组件重新渲染后执行。
+`componentDidUpdate`方法在每次组件重新渲染（`render`方法）后执行。
+
+```javascript
+componentDidUpdate: function(prevProps, prevState){
+  //
+}
+```
+
+该方法可以操作组件所在的 DOM，用于操作数据已经更新之后的组件。
 
 ```javascript
 componentDidUpdate: function() {
@@ -71,7 +99,14 @@ componentDidMount: function() {
 
 ## shouldComponentUpdate
 
-`shouldComponentUpdate`方法会在每次重新渲染之前，自动调用。它返回一个布尔值，决定是否应该进行此次渲染。默认为`true`，表示进行渲染，如果为`false`，就表示中止渲染。
+`shouldComponentUpdate`方法会在每次重新渲染（`render`方法）之前，自动调用。它返回一个布尔值，决定是否应该进行此次渲染。默认为`true`，表示进行渲染，如果为`false`，就表示中止渲染。
+
+```javascript
+shouldComponentUpdate: function(nextProps, nextState){
+  // return a boolean value
+  return true;
+}
+```
 
 下面是父元素组件`Color`的代码。
 
@@ -110,13 +145,35 @@ shouldComponentUpdate: function (nextProps, nextState) {
 
 注意，`shouldComponentUpdate`方法默认返回`true`，这意味着即使`state`和`props`没有改变，只要调用`this.setState`，就会导致组件重新渲染。
 
+## componentWillUpdate
+
+一旦`shouldComponentUpdate`返回`true`，`componentWillUpdate`就会执行，主要用于为即将到来的更新做准备工作。
+
+```javascript
+componentWillUpdate: function(nextProps, nextState){
+  // perform any preparations for an upcoming update
+}
+```
+
+注意，这个方法之中不应该调用`this.setState`，因为它本身不应该触发更新。
+
 ## componentWillReceiveProps
 
-`componentWillReceiveProps`方法在父组件每次要求当前组件重新渲染时调用，它在当前组件的`render()`之前调用。它只在父组件更新 `props`时执行，当前组件本身调用`setState`而引发重新渲染，是不会执行这个方法的。在此方法中调用 setState 是不会二次渲染的。
+`componentWillReceiveProps`方法在父组件每次重新传给当前组件参数时调用，它在当前组件的`render()`之前调用。组件的第一次渲染不会调用这个方法。
+
+它只在父组件更新`props`时执行，当前组件本身调用`setState`而引发重新渲染，是不会执行这个方法的。在此方法中调用`setState`也不会二次渲染的。`componentWillReceiveProps`可以根据已有的`props`和刚刚传入的`props`，进行`state`的更新，而不会触发组件的重新更新。
+
+```javascript
+componentWillReceiveProps: function(nextProps) {
+  this.setState({
+    // set something
+  });
+}
+```
+
+在`componentWillReceiveProps`之中，可以调用`setState`方法。而`componentWillUpdate`是用来回应`state`变化的方法。
 
 `componentWillReceiveProps`在`shouldComponentUpdate`和`componentWillUpdate`之前调用。
-
-在`componentWillReceiveProps`之中，可以调用`setState`方法。而`componentWillUpdate`是一个方法，用来回应state的变化。
 
 这个方法可以用来在`render()`调用之前，对props进行调整，然后通过`this.setState()`设置state。老的props可以用`this.props`拿到。
 
@@ -243,3 +300,8 @@ var Jake = React.createClass({
 上面代码中，`getInitialState`为首次渲染设置默认参数。在首次渲染之前，会执行`componentWillMount`方法。该方法内部调用`loadData`方法，发出AJAX请求。这个请求有可能成功，也有可能不成功，而且不知道需要多久才能完成。在AJAX请求返回结果，执行`setState`方法设置新的state之前，该组件将以默认值渲染。所以，使用`getInitialState`方法设置默认参数的意义就在这里。
 
 注意，该方法之中不能调用`setState`。
+
+## componentWillUnmount
+
+`componentWillUnmount`方法在组件从 DOM 移除后调用。一种用途是清除`componentDidMount`方法中添加的定时器。
+
